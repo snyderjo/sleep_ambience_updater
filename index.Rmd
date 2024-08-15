@@ -73,7 +73,6 @@ My hope is to identify how temperature and humidity affect my sleep, and adjust 
 
 A couple of notes:  
 
-
 * What gives with the delay between the date this report is rendered vs. what is displayed below?  
   + If the data were immediate, it would be entirely too clear when I was out of town--information I'm not keen to share.  
 * There are notable gaps in data.  Why?  
