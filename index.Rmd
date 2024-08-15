@@ -1,0 +1,137 @@
+---
+layout: page
+title: "Weekly Ambience and Sleep"
+date: "`r format(Sys.Date(),'%b %d, %Y')`"
+output:
+  md_document:
+    variant: gfm
+    preserve_yaml: true
+knit: (function(input, encoding) {
+  rmarkdown::render(input,
+                    encoding = "UTF-8",
+                    output_dir = "../output")})
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(include = TRUE,echo=FALSE,warning = FALSE,message=FALSE)
+knitr::opts_knit$set(base.dir = "/Users/johnsnyder/Documents/projects/ambience_reports/weekly_sleep/output/")
+knitr::opts_chunk$set(fig.path = "images/")
+
+
+
+library(ggplot2)
+library(dplyr)
+library(rjson)
+
+setwd(file.path("~","Documents","projects","ambience_reports","weekly_sleep"))
+amb_dataset = read.csv(file.path("intermediate_data","temp_ambience.csv"))
+#sleep_dataset = fromJSON(file.path("intermediate_data","oura_sleep_2024-08-04T19-54-06.json"),flatten = T)
+
+amb_dataset$reading_dttm = as.POSIXct(amb_dataset$reading_dttm)
+amb_dataset = amb_dataset %>% arrange(reading_dttm)
+
+x_lower = as.POSIXct(paste0(format(min(amb_dataset$reading_dttm),"%Y-%m-%d")," 12:00"))
+x_upper = as.POSIXct(paste0(format(max(amb_dataset$reading_dttm),"%Y-%m-%d")," 12:00"))
+
+sleepJson = fromJSON(file=file.path("intermediate_data","oura_sleep_2024-08-04T19-54-06.json"))
+
+dateList = seq(as.Date(format(x_lower,"%Y-%m-%d")),as.Date(format(x_upper,"%Y-%m-%d")),by="1 day")
+
+indices = which(sapply(sleepJson$sleep,function(x){x["day"] %in% as.character(dateList)}))
+wha = lapply(
+  sleepJson$sleep[indices]
+  ,function(x){data.frame(
+    "date"=x["day"][[1]]
+    ,"start"= x["bedtime_start"][[1]]
+    ,"end"=x["bedtime_end"][[1]]
+    )}
+  )
+bedtimes = do.call(rbind,wha)
+bedtimes$start = as.POSIXct(bedtimes$start,format="%Y-%m-%dT%H:%M:%S.000%OS")
+bedtimes$end = as.POSIXct(bedtimes$end,format="%Y-%m-%dT%H:%M:%S.000%OS")
+
+#read in sleep scores
+sleep_scores = read.csv(file.path("intermediate_data","oura_daily-sleep_2024-08-04T18-49-07.csv"),header = TRUE)
+
+plot_sleep_data = left_join(bedtimes,sleep_scores,by=c("date" = "day"))
+
+names(plot_sleep_data)[names(plot_sleep_data)=="score"] <- "Sleep\nScore"
+
+```
+
+## `r format(Sys.Date(),'%b %d, %Y')`
+
+The images below below are the combined results of two systems:  
+* the measurements that I record as part of my [ambience database](https://snyderjo.github.io/ambience/), and  
+* my sleep patterns as recorded by a wearable device.  
+
+My hope is to identify how temperature and humidity affect my sleep, and adjust them accordingly--god help if pressure affects my sleep.  
+
+A couple of notes:  
+* What gives with the delay between the date this report is rendered vs. what is displayed below?  
+  + If the data were immediate, it would be entirely too clear when I was out of town--information I'm not keen to share.  
+* There are notable gaps in data.  Why?  
+   + Some nights, I forget to put on the wearable.  
+   + Some days the [DAG](https://airflow.apache.org/docs/apache-airflow/1.10.9/concepts.html) fails for no discerable reason--you might take it up with Apache.  
+   + Sometimes, the device itself simply fails to record. ¯\\\\\_(ツ)\_/¯  
+
+### Temperature  
+
+```{r Temperature, echo=FALSE}
+tmp_data = 
+  data.frame(
+    x=c(rep(median(amb_dataset$reading_dttm),2),rep(median(amb_dataset$reading_dttm)+10^5,2))
+    ,y=c(min(amb_dataset$temp),max(amb_dataset$temp),max(amb_dataset$temp),min(amb_dataset$temp))
+  )
+
+p = ggplot(data = amb_dataset) +
+  aes(x = reading_dttm, y = temp) +
+  geom_rect(mapping=aes(xmin=start,xmax=end,ymin=-Inf,ymax=Inf,fill=`Sleep\nScore`),data=plot_sleep_data,inherit.aes = F)+
+  geom_line(color = "red")+
+  xlim(x_lower,x_upper) +
+  labs(
+    x = "reading date-time"
+    ,y = "Temperature (C)"    ) 
+
+print(p)
+```
+
+Some of you might be asking: *Does it really get above 40 (104 degrees Fahrenheit) in your bedroom???*  
+No.  The sensor is attached to a raspberry pi, which produces a good amount of heat on its own.  The above data measures temperature with a consistent bias.
+
+### Humidity  
+
+```{r humidity, echo=FALSE}
+p = ggplot(data = amb_dataset) +  geom_rect(mapping=aes(xmin=start,xmax=end,ymin=-Inf,ymax=Inf,fill=`Sleep\nScore`),data=plot_sleep_data,inherit.aes = F)+
+  aes(x = reading_dttm, y = humidity) +
+  geom_line(color = "orange")+
+  xlim(x_lower,x_upper) +
+  labs(
+    x = "reading date-time"
+    ,y="Humidity (%)"
+    ) +
+  guides(color=guide_legend(title="Sleep\nScore"))
+
+print(p)
+
+```
+
+### Pressure  
+
+```{r pressure, echo=FALSE}
+p = ggplot(data = amb_dataset) +
+  aes(x = reading_dttm, y = pressure) +
+  geom_rect(mapping=aes(xmin=start,xmax=end,ymin=-Inf,ymax=Inf,fill=`Sleep\nScore`),data=plot_sleep_data,inherit.aes = F)+
+  geom_line(color = "green")+
+  xlim(x_lower,x_upper) +
+  labs(
+    x = "reading date-time"
+    ,y="pressure (mbar)"
+    )
+
+print(p)
+
+```
+
+
+
