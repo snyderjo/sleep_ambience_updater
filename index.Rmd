@@ -2,6 +2,7 @@
 layout: page
 title: "Weekly Ambience and Sleep"
 date: "`r format(Sys.Date(),'%b %d, %Y')`"
+background: "/img/SenseHat.jpg"
 output:
   md_document:
     variant: gfm
@@ -62,12 +63,17 @@ names(plot_sleep_data)[names(plot_sleep_data)=="score"] <- "Sleep\nScore"
 ## `r format(Sys.Date(),'%b %d, %Y')`
 
 The images below below are the combined results of two systems:  
+
+
 * the measurements that I record as part of my [ambience database](https://snyderjo.github.io/ambience/), and  
 * my sleep patterns as recorded by a wearable device.  
+
 
 My hope is to identify how temperature and humidity affect my sleep, and adjust them accordingly--god help if pressure affects my sleep.  
 
 A couple of notes:  
+
+
 * What gives with the delay between the date this report is rendered vs. what is displayed below?  
   + If the data were immediate, it would be entirely too clear when I was out of town--information I'm not keen to share.  
 * There are notable gaps in data.  Why?  
