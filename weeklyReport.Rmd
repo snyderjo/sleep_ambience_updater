@@ -4,7 +4,6 @@ date: "`r format(Sys.Date(),'%b %d, %Y')`"
 output: html_document
 knit: (function(input, encoding) {
   rmarkdown::render(input,
-                    encoding = "UTF-8",
                     output_dir = "../output")})
 ---
 
@@ -46,10 +45,9 @@ bedtimes$end = as.POSIXct(bedtimes$end,format="%Y-%m-%dT%H:%M:%S.000%OS")
 #read in sleep scores
 sleep_scores = read.csv(file.path("intermediate_data","oura_daily-sleep_2024-08-04T18-49-07.csv"),header = TRUE)
 
-plot_sleep_data = left_join(bedtimes,sleep_scores,by=c("date" = "day"))
-
-# remove sleep data outside of the week's limits
-plot_sleep_data = plot_sleep_data %>% filter(x_lower < start & end < x_upper)
+plot_sleep_data = left_join(bedtimes,sleep_scores,by=c("date" = "day")) %>%
+  # remove sleep data outside of the week's limits
+  filter(x_lower < start & end < x_upper) 
 
 ```
 
@@ -60,27 +58,33 @@ The images below below are the combined results of two systems:
 * the measurements that I record as part of my [ambience database](https://snyderjo.github.io/ambience/), and  
 * my sleep patterns as recorded by a wearable device.  
 
-My hope is to identify how temperature and humidity affect my sleep, and adjust them accordingly--god help if pressure affects my sleep.  
+My hope is to identify how temperature and humidity affect my sleep, and adjust them accordingly--god help me if pressure affects my sleep.  
 
-A couple of notes:  
-
-* What gives with the delay between the date this report is rendered vs. what is displayed below?  
-  + If the data were immediate, it would be entirely too clear when I was out of town--information I'm not keen to share.  
-* There are notable gaps in data.  Why?  
-   + Some nights, I forget to put on the wearable.  
-   + Some days the [DAG](https://airflow.apache.org/docs/apache-airflow/1.10.9/concepts.html) fails for no discerable reason--you might take it up with Apache.  
-   + Sometimes, the device itself simply fails to record. ¯\\\_(ツ)\_/¯  
+The blue boxes represent the beginning and end of a night's sleep.  The sleep score is represented twice-over: once as the opacity of the box (more opaque is a lower score), and second in a tooltip near the top of it's respective box.  
 
 ### Temperature  
 
 ```{r Temperature, echo=FALSE}
-tmp_data = 
-  data.frame(
-    x=c(rep(median(amb_dataset$reading_dttm),2),rep(median(amb_dataset$reading_dttm)+10^5,2))
-    ,y=c(min(amb_dataset$temp),max(amb_dataset$temp),max(amb_dataset$temp),min(amb_dataset$temp))
-  )
+y_box_top = max(amb_dataset$temp)
+y_box_bottom = min(amb_dataset$temp)
+
 
 fig = plot_ly(data = amb_dataset, x = ~reading_dttm) 
+
+for (i in 1:nrow(plot_sleep_data)) fig <- fig %>% 
+  
+  add_polygons(
+    x = c(plot_sleep_data$start[i],plot_sleep_data$end[i],plot_sleep_data$end[i],plot_sleep_data$start[i])
+    ,y = c(y_box_top,y_box_top,y_box_bottom,y_box_bottom)
+    ,color = I("blue")
+    ,opacity = plot_sleep_data$score[i]/100
+    ,line=list(width=0)
+    ,name=as.character(plot_sleep_data$score[i])
+    #,hoverinfo = plot_sleep_data$score[i]
+    ,inherit = FALSE
+    ,showlegend = FALSE
+  )
+
 
 fig = fig %>% add_lines(y = ~temp,color = I("red"))
 fig = fig %>% layout(
@@ -101,8 +105,26 @@ No.  The sensor is attached to a raspberry pi, which produces a good amount of h
 ### Humidity  
 
 ```{r humidity, echo=FALSE}
+
+y_box_top = max(amb_dataset$humidity)
+y_box_bottom = min(amb_dataset$humidity)
+
 fig = plot_ly(data = amb_dataset, x = ~reading_dttm) 
-fig = fig %>% add_lines(y = ~humidity,color = I("blue"))
+
+for (i in 1:nrow(plot_sleep_data)) fig <- fig %>% 
+  add_polygons(
+    x = c(plot_sleep_data$start[i],plot_sleep_data$end[i],plot_sleep_data$end[i],plot_sleep_data$start[i])
+    ,y = c(y_box_top,y_box_top,y_box_bottom,y_box_bottom)
+    ,color = I("blue")
+    ,opacity = plot_sleep_data$score[i]/100
+    ,line=list(width=0)
+    ,name=as.character(plot_sleep_data$score[i])
+    #,hoverinfo = plot_sleep_data$score[i]
+    ,inherit = FALSE
+    ,showlegend = FALSE
+  )
+
+fig = fig %>% add_lines(y = ~humidity,color = I("orange"))
 fig = fig %>% layout(
     title = NULL,
     xaxis = list(
@@ -121,23 +143,24 @@ fig
 ### Pressure  
 
 ```{r pressure, echo=FALSE}
-rect_list <- list()
+y_box_top = max(amb_dataset$pressure)
+y_box_bottom = min(amb_dataset$pressure)
 
-for(i in 1:nrow(plot_sleep_data)){
-  rect_list[[i]] <- list(type = "rect"
-                        ,fillcolor = rgb(0,0,(plot_sleep_data[i,"score"]-min(plot_sleep_data$score))/(max(plot_sleep_data$score) - min(plot_sleep_data$score)))
-                        , opacity = 0.5
-                        , x0 = plot_sleep_data[i,"start"]
-                        , x1 = plot_sleep_data[i,"end"]
-                        , xref = "x"
-                        , y0 = min(amb_dataset$pressure)
-                        , y1 = max(amb_dataset$pressure)
-                        , yref = "y"
-                        ,showlegend=TRUE
-                        )
-}
 
 fig = plot_ly(data = amb_dataset, x = ~reading_dttm) 
+
+for (i in 1:nrow(plot_sleep_data)) fig <- fig %>% 
+  add_polygons(
+    x = c(plot_sleep_data$start[i],plot_sleep_data$end[i],plot_sleep_data$end[i],plot_sleep_data$start[i])
+    ,y = c(y_box_top,y_box_top,y_box_bottom,y_box_bottom)
+    ,color = I('blue')
+    ,opacity = plot_sleep_data$score[i]/100
+    ,line=list(width=0)
+    ,name=as.character(plot_sleep_data$score[i])
+    #,hoverinfo = plot_sleep_data$score[i]
+    ,inherit = FALSE
+    ,showlegend = FALSE
+  )
 
 fig = fig %>% add_lines(y = ~pressure,color = I("green"))
 fig = fig %>% layout(
@@ -148,7 +171,6 @@ fig = fig %>% layout(
       ,rangeslider = list(type = "dateteime")
       ),
     yaxis = list(title = "Pressure (mbar)")
-    ,shapes = rect_list
     )
 
 fig
@@ -156,5 +178,15 @@ fig
 
 ```
 
+
+## A couple of notes:
+
+
+* What gives with the delay between the date this report is rendered vs. what is displayed below?  
+  + If the data were immediate, it would be entirely too clear when I was out of town--information I'm not keen to share.  
+* There are notable gaps in data.  Why?  
+   + Some nights, I forget to put on the wearable.  
+   + Some days the [DAG](https://airflow.apache.org/docs/apache-airflow/1.10.9/concepts.html) fails for no discerable reason--I invite you to take it up with Apache.  
+   + Sometimes, the device itself simply fails to record. ¯\\\_(ツ)\_/¯  
 
 
