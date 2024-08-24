@@ -48,7 +48,8 @@ sleep_scores = read.csv(file.path("intermediate_data","oura_daily-sleep_2024-08-
 
 plot_sleep_data = left_join(bedtimes,sleep_scores,by=c("date" = "day"))
 
-names(plot_sleep_data)[names(plot_sleep_data)=="score"] <- "Sleep\nScore"
+# remove sleep data outside of the week's limits
+plot_sleep_data = plot_sleep_data %>% filter(x_lower < start & end < x_upper)
 
 ```
 
@@ -80,6 +81,7 @@ tmp_data =
   )
 
 fig = plot_ly(data = amb_dataset, x = ~reading_dttm) 
+
 fig = fig %>% add_lines(y = ~temp,color = I("red"))
 fig = fig %>% layout(
     title = NULL,
@@ -119,8 +121,25 @@ fig
 ### Pressure  
 
 ```{r pressure, echo=FALSE}
+rect_list <- list()
+
+for(i in 1:nrow(plot_sleep_data)){
+  rect_list[[i]] <- list(type = "rect"
+                        ,fillcolor = rgb(0,0,(plot_sleep_data[i,"score"]-min(plot_sleep_data$score))/(max(plot_sleep_data$score) - min(plot_sleep_data$score)))
+                        , opacity = 0.5
+                        , x0 = plot_sleep_data[i,"start"]
+                        , x1 = plot_sleep_data[i,"end"]
+                        , xref = "x"
+                        , y0 = min(amb_dataset$pressure)
+                        , y1 = max(amb_dataset$pressure)
+                        , yref = "y"
+                        ,showlegend=TRUE
+                        )
+}
+
 fig = plot_ly(data = amb_dataset, x = ~reading_dttm) 
-fig = fig %>% add_lines(y = ~humidity,color = I("green"))
+
+fig = fig %>% add_lines(y = ~pressure,color = I("green"))
 fig = fig %>% layout(
     title = NULL,
     xaxis = list(
@@ -129,6 +148,7 @@ fig = fig %>% layout(
       ,rangeslider = list(type = "dateteime")
       ),
     yaxis = list(title = "Pressure (mbar)")
+    ,shapes = rect_list
     )
 
 fig
