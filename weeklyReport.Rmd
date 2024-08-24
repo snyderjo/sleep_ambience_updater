@@ -9,7 +9,7 @@ knit: (function(input, encoding) {
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(include = TRUE,echo=FALSE,warning = FALSE,message=FALSE)
-
+knitr::opts_chunk$set(fig.dim = c(9, 7))
 
 library(plotly)
 library(dplyr)

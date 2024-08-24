@@ -71,14 +71,9 @@ The images below below are the combined results of two systems:
 
 My hope is to identify how temperature and humidity affect my sleep, and adjust them accordingly--god help if pressure affects my sleep.  
 
-A couple of notes:  
+The line represents the value of the measurement in question.  The blue boxes represent the recorded sleep from beginning to end with the color representing the sleep score.  
 
-* What gives with the delay between the date this report is rendered vs. what is displayed below?  
-  + If the data were immediate, it would be entirely too clear when I was out of town--information I'm not keen to share.  
-* There are notable gaps in data.  Why?  
-   + Some nights, I forget to put on the wearable.  
-   + Some days the [DAG](https://airflow.apache.org/docs/apache-airflow/1.10.9/concepts.html) fails for no discerable reason--you might take it up with Apache.  
-   + Sometimes, the device itself simply fails to record. ¯\\\\\_(ツ)\_/¯  
+For a more interactive and/or exploratory version of this report [click here](weeklyReport.html)
 
 ### Temperature  
 
@@ -138,5 +133,14 @@ print(p)
 
 ```
 
+
+#### A couple of notes:  
+
+* What gives with the delay between the date this report is rendered vs. what is displayed below?  
+  + If the data were immediate, it would be entirely too clear when I was out of town--information I'm not keen to share.  
+* There are notable gaps in data.  Why?  
+   + Some nights, I forget to put on the wearable.  
+   + Some days the [DAG](https://airflow.apache.org/docs/apache-airflow/1.10.9/concepts.html) fails for no discerable reason--you might take it up with Apache.  
+   + Sometimes, the device itself simply fails to record. ¯\\\\\_(ツ)\_/¯  
 
 
