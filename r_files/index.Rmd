@@ -15,24 +15,50 @@ knit: (function(input, encoding) {
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(include = TRUE,echo=FALSE,warning = FALSE,message=FALSE)
-knitr::opts_knit$set(base.dir = "/Users/johnsnyder/Documents/projects/ambience_reports/weekly_sleep/output/")
 knitr::opts_chunk$set(fig.path = "images/")
-
 
 
 library(ggplot2)
 library(dplyr)
 library(rjson)
+library(DBI)
+library(RPostgres)
+library(httr)
 
-setwd(file.path("~","Documents","projects","ambience_reports","weekly_sleep"))
-amb_dataset = read.csv(file.path("intermediate_data","temp_ambience.csv"))
-#sleep_dataset = fromJSON(file.path("intermediate_data","oura_sleep_2024-08-04T19-54-06.json"),flatten = T)
+# Grab the data from the ambience database
+
+source("creds.R")
+
+queryText = paste(readLines(file.path("..","queries","ambience.sql")),collapse = "\r\n ")
+
+con <- dbConnect(RPostgres::Postgres(),dbname=AMB_CREDS$dbname,host=AMB_CREDS$host,port=AMB_CREDS$port,user=AMB_CREDS$user,password=AMB_CREDS$password,timezone=NULL)
+
+res <- dbSendQuery(con,queryText)
+amb_dataset <- dbFetch(res)
+dbDisconnect(con)
 
 amb_dataset$reading_dttm = as.POSIXct(amb_dataset$reading_dttm)
 amb_dataset = amb_dataset %>% arrange(reading_dttm)
 
 x_lower = as.POSIXct(paste0(format(min(amb_dataset$reading_dttm),"%Y-%m-%d")," 12:00"))
 x_upper = as.POSIXct(paste0(format(max(amb_dataset$reading_dttm),"%Y-%m-%d")," 12:00"))
+
+# put in the requests for the sleep quality scores
+
+token_str = paste0("Bearer ",readLines("ouraring.txt"))
+
+r <- GET(
+  url = "https://api.ouraring.com/v2/usercollection/daily_sleep"
+  , query = list(start_date = "2024-01-01", end_date = "2024-01-08")
+  , add_headers(.headers = c("Authorization" = token_str))
+    )
+content(r)
+
+r = GET(url = "https://api.ouraring.com/v2/usercollection/sleep"
+    , query = list(start_date = "2024-01-01", end_date = "2024-01-08")
+    ,add_headers("Authorization" = token_str)
+    )
+content(r)
 
 sleepJson = fromJSON(file=file.path("intermediate_data","oura_sleep_2024-08-04T19-54-06.json"))
 
@@ -52,13 +78,16 @@ bedtimes$start = as.POSIXct(bedtimes$start,format="%Y-%m-%dT%H:%M:%S.000%OS")
 bedtimes$end = as.POSIXct(bedtimes$end,format="%Y-%m-%dT%H:%M:%S.000%OS")
 
 #read in sleep scores
-sleep_scores = read.csv(file.path("intermediate_data","oura_daily-sleep_2024-08-04T18-49-07.csv"),header = TRUE)
+sleep_scores = read.csv(file.path("../../intermediate_data","oura_daily-sleep_2024-08-04T18-49-07.csv"),header = TRUE)
 
 plot_sleep_data = left_join(bedtimes,sleep_scores,by=c("date" = "day"))
 
 names(plot_sleep_data)[names(plot_sleep_data)=="score"] <- "Sleep\nScore"
 
 ```
+
+
+
 
 ## `r format(Sys.Date(),'%b %d, %Y')`
 
