@@ -1,5 +1,5 @@
 ---
-title: "Weekly Ambience and Sleep"
+title: "Weekly Sleep and Ambience"
 date: "`r format(Sys.Date(),'%b %d, %Y')`"
 output: html_document
 knit: (function(input, encoding) {
@@ -43,13 +43,13 @@ dateList = dateList + 1
 r <- GET(
   url = "https://api.ouraring.com/v2/usercollection/daily_sleep"
   , query = list(start_date = dateList[1], end_date = dateList[length(dateList)])
-  , add_headers("Authorization" = paste0("Bearer ",readLines("ouraring.txt")[1]))
+  , add_headers("Authorization" = paste0("Bearer ",readLines("token.txt")[1]))
     )
 sleep_score_json = fromJSON(content(r,as="text",encoding = "UTF-8"))
 
 r = GET(url = "https://api.ouraring.com/v2/usercollection/sleep"
     , query = list(start_date = dateList[1], end_date = dateList[length(dateList)])
-    ,add_headers("Authorization" = paste0("Bearer ",readLines("ouraring.txt")[1]))
+    ,add_headers("Authorization" = paste0("Bearer ",readLines("token.txt")[1]))
     )
 sleep_info_json = fromJSON(content(r, as="text",encoding = "UTF-8"))
 
@@ -80,12 +80,7 @@ bedtimes = do.call(rbind,wha)
 bedtimes$start = as.POSIXct(bedtimes$start,format="%Y-%m-%dT%H:%M:%S")
 bedtimes$end = as.POSIXct(bedtimes$end,format="%Y-%m-%dT%H:%M:%S")
 
-#read in sleep scores
-#sleep_scores = read.csv(file.path("../../intermediate_data","oura_daily-sleep_2024-08-04T18-49-07.csv"),header = TRUE)
-
 plot_sleep_data = left_join(bedtimes,sleepScores,by=c("date" = "day"))
-
-
 ```
 
 ## Plots {.tabset}
