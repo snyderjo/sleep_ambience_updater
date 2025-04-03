@@ -172,7 +172,7 @@ print(p)
 
 #### A couple of notes:  
 
-* What gives with the delay between the date this report is rendered vs. what is displayed below?  
+* What gives with the delay between the date this report is rendered vs. what is displayed above?  
   + If the data were immediate, it would be entirely too clear when I was out of town--information I'm not keen to share.  
 * There are notable gaps in data.  Why?  
    + Some nights, I forget to put on the wearable.  
